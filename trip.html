@@ -128,13 +128,16 @@
     }
     function formatDate(iso) { return new Date(iso).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
 
-    function cameraIcon() {
+    function pinIcon(color, html) {
       return L.divIcon({
         className:'',
-        html:'<div style="background:#FF6F00;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,0.35);border:2px solid #fff;cursor:pointer;">📷</div>',
-        iconSize:[34,34], iconAnchor:[17,17],
+        html:`<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;"><div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,0.35);border:2px solid #fff;">${html}</div><div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid ${color};margin-top:-1px;"></div></div>`,
+        iconSize:[30,43], iconAnchor:[15,43],
       });
     }
+    function cameraIcon() { return pinIcon('#FF6F00','📷'); }
+    function startIcon() { return pinIcon('#2E7D32',''); }
+    function endIcon() { return pinIcon('#C62828',''); }
 
     function openLightbox(photo) {
       document.getElementById('lightbox-img').src = photo.url;
@@ -172,10 +175,10 @@
       const track = trip.track || [];
       if (track.length > 0) {
         const coords = track.map(p=>[p.lat,p.lng]);
-        const route = L.polyline(coords,{color:'#2E7D32',weight:5,opacity:0.85}).addTo(map);
+        const route = L.polyline(coords,{color:'#FFD600',weight:5,opacity:0.95}).addTo(map);
         map.fitBounds(route.getBounds(),{padding:[48,48]});
-        L.circleMarker(coords[0],{radius:9,color:'#fff',fillColor:'#2E7D32',fillOpacity:1,weight:2}).addTo(map).bindTooltip('Start');
-        L.circleMarker(coords[coords.length-1],{radius:9,color:'#fff',fillColor:'#C62828',fillOpacity:1,weight:2}).addTo(map).bindTooltip('Cíl');
+        L.marker(coords[0],{icon:startIcon()}).addTo(map).bindTooltip('Start');
+        L.marker(coords[coords.length-1],{icon:endIcon()}).addTo(map).bindTooltip('Cíl');
       } else {
         map.setView([50.0755,14.4378],10);
       }
