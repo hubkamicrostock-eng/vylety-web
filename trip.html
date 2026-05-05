@@ -14,106 +14,67 @@
       background: #f5f5f5;
       display: flex; flex-direction: column; height: 100dvh;
     }
-
     #header {
       background: #2E7D32; color: #fff; padding: 12px 16px;
-      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-      z-index: 100;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 100;
     }
-    #header a {
-      color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.9rem;
-      white-space: nowrap; flex-shrink: 0;
-    }
+    #header a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.9rem; white-space: nowrap; flex-shrink: 0; }
     #header a:hover { color: #fff; }
-    #header h1 {
-      font-size: 1.05rem; flex: 1; min-width: 0;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    #header h1 { font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #btn-share {
       background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
       color: #fff; border-radius: 8px; padding: 7px 14px;
       cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0;
     }
-    #btn-share:hover { background: rgba(255,255,255,0.3); }
-
     #map { flex: 1; min-height: 0; }
-
     #stats-bar {
       background: #fff; padding: 10px 8px; flex-shrink: 0;
-      border-top: 1px solid #e0e0e0;
-      display: flex; overflow-x: auto;
+      border-top: 1px solid #e0e0e0; display: flex; overflow-x: auto;
     }
     .stat { flex: 1; min-width: 64px; text-align: center; padding: 2px 4px; }
     .stat-value { font-size: 0.95rem; font-weight: bold; color: #2E7D32; }
     .stat-label { font-size: 0.68rem; color: #888; margin-top: 2px; }
-
     #photo-strip {
       background: #fff; padding: 8px 12px; flex-shrink: 0;
-      border-top: 1px solid #e0e0e0;
-      display: flex; gap: 8px; overflow-x: auto;
+      border-top: 1px solid #e0e0e0; display: flex; gap: 8px; overflow-x: auto;
     }
     #photo-strip:empty { display: none; }
     .photo-thumb {
       width: 62px; height: 62px; object-fit: cover; border-radius: 7px;
-      cursor: pointer; flex-shrink: 0; border: 2px solid transparent;
-      transition: border-color 0.15s;
+      cursor: pointer; flex-shrink: 0; border: 2px solid transparent; transition: border-color 0.15s;
     }
     .photo-thumb:hover { border-color: #2E7D32; }
-
-    /* Share panel */
     #share-panel {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 3000;
-      align-items: flex-end; justify-content: center;
+      background: rgba(0,0,0,0.5); z-index: 3000; align-items: flex-end; justify-content: center;
     }
     #share-panel.active { display: flex; }
-    #share-box {
-      background: #fff; border-radius: 16px 16px 0 0;
-      padding: 20px 20px 32px; width: 100%; max-width: 600px;
-    }
+    #share-box { background: #fff; border-radius: 16px 16px 0 0; padding: 20px 20px 32px; width: 100%; max-width: 600px; }
     #share-box h2 { font-size: 1rem; margin-bottom: 16px; color: #222; }
     .share-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
     .share-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .share-input {
       flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px;
       font-size: 0.78rem; color: #444; background: #f9f9f9;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
     }
     .copy-btn {
-      padding: 8px 14px; background: #2E7D32; color: #fff;
-      border: none; border-radius: 8px; cursor: pointer;
-      font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;
-      transition: background 0.15s;
+      padding: 8px 14px; background: #2E7D32; color: #fff; border: none;
+      border-radius: 8px; cursor: pointer; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;
     }
     .copy-btn.copied { background: #1565C0; }
-    #share-close {
-      width: 100%; padding: 12px; background: #f0f0f0; border: none;
-      border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: #333;
-    }
-
-    /* Lightbox */
+    #share-close { width: 100%; padding: 12px; background: #f0f0f0; border: none; border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: #333; }
     #lightbox {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.92); z-index: 2000;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 2000;
       justify-content: center; align-items: center; flex-direction: column; gap: 12px;
     }
     #lightbox.active { display: flex; }
     #lightbox img { max-width: 92vw; max-height: 76vh; border-radius: 8px; }
-    #lightbox-close {
-      position: absolute; top: 16px; right: 20px; color: #fff;
-      font-size: 2rem; cursor: pointer; background: none; border: none; line-height: 1;
-    }
+    #lightbox-close { position: absolute; top: 16px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; background: none; border: none; line-height: 1; }
     #lightbox-caption { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
-
-    /* Embed mode */
-    body.embed #header,
-    body.embed #stats-bar,
-    body.embed #photo-strip { display: none !important; }
+    body.embed #header, body.embed #stats-bar, body.embed #photo-strip { display: none !important; }
     body.embed { height: 100vh; }
-
     .loading { padding: 40px; text-align: center; color: #888; font-size: 0.9rem; }
-    .error-msg { padding: 40px; text-align: center; color: #C62828; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -122,9 +83,7 @@
     <h1 id="trip-title">Načítám...</h1>
     <button id="btn-share">Sdílet</button>
   </div>
-
   <div id="map"><div class="loading">Načítám mapu…</div></div>
-
   <div id="stats-bar">
     <div class="stat"><div class="stat-value" id="stat-dist">–</div><div class="stat-label">Vzdálenost</div></div>
     <div class="stat"><div class="stat-value" id="stat-dur">–</div><div class="stat-label">Doba</div></div>
@@ -132,14 +91,11 @@
     <div class="stat"><div class="stat-value" id="stat-photos">–</div><div class="stat-label">Fotek</div></div>
     <div class="stat"><div class="stat-value" id="stat-date">–</div><div class="stat-label">Datum</div></div>
   </div>
-
   <div id="photo-strip"></div>
-
-  <!-- Share panel -->
   <div id="share-panel">
     <div id="share-box">
       <h2>🔗 Sdílet výlet</h2>
-      <p class="share-label">Odkaz (pro sdílení na sociálních sítích)</p>
+      <p class="share-label">Odkaz (pro sociální sítě)</p>
       <div class="share-row">
         <input class="share-input" id="share-link-input" readonly />
         <button class="copy-btn" id="btn-copy-link">Kopírovat</button>
@@ -152,8 +108,6 @@
       <button id="share-close">Zavřít</button>
     </div>
   </div>
-
-  <!-- Lightbox -->
   <div id="lightbox">
     <button id="lightbox-close">✕</button>
     <img id="lightbox-img" src="" alt="" />
@@ -161,6 +115,114 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js?v=4"></script>
+  <script>
+    const SUPABASE_URL = 'https://krtntseehlbrxvoiwflp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydG50c2VlaGxicnh2b2l3ZmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjY4OTcsImV4cCI6MjA5MzM0Mjg5N30.kltSaq1zpsBEWmTeUh5bXYbxLEHS2e7NVqs85mU0UE8';
+    const WEB_BASE = 'https://hubkamicrostock-eng.github.io/vylety-web';
+
+    function getParam(name) { return new URLSearchParams(location.search).get(name); }
+    function formatDistance(km) { return km < 1 ? Math.round(km*1000)+' m' : km.toFixed(2)+' km'; }
+    function formatDuration(sec) {
+      const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+      return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    }
+    function formatDate(iso) { return new Date(iso).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
+
+    function cameraIcon() {
+      return L.divIcon({
+        className:'',
+        html:'<div style="background:#FF6F00;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,0.35);border:2px solid #fff;cursor:pointer;">📷</div>',
+        iconSize:[34,34], iconAnchor:[17,17],
+      });
+    }
+
+    function openLightbox(photo) {
+      document.getElementById('lightbox-img').src = photo.url;
+      document.getElementById('lightbox-caption').textContent = 'Foto '+photo.index+' · '+new Date(photo.timestamp).toLocaleString('cs-CZ');
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    async function init() {
+      const id = getParam('id');
+      const isEmbed = getParam('embed') === '1';
+      if (isEmbed) document.body.classList.add('embed');
+      if (!id) { document.getElementById('trip-title').textContent='Neplatný odkaz'; return; }
+
+      const map = L.map('map');
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      const res = await fetch(SUPABASE_URL+'/rest/v1/trips?id=eq.'+id+'&select=*,photos(*)',
+        {headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+      const data = await res.json();
+      const trip = data[0];
+      if (!trip) { document.getElementById('trip-title').textContent='Výlet nenalezen'; return; }
+
+      const name = trip.name || 'Výlet';
+      document.title = name;
+      document.getElementById('trip-title').textContent = name;
+      document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km);
+      document.getElementById('stat-dur').textContent = formatDuration(trip.duration_seconds);
+      document.getElementById('stat-speed').textContent = (trip.avg_speed_kmh||0).toFixed(1);
+      document.getElementById('stat-photos').textContent = (trip.photos||[]).length;
+      document.getElementById('stat-date').textContent = formatDate(trip.started_at);
+
+      const track = trip.track || [];
+      if (track.length > 0) {
+        const coords = track.map(p=>[p.lat,p.lng]);
+        const route = L.polyline(coords,{color:'#2E7D32',weight:5,opacity:0.85}).addTo(map);
+        map.fitBounds(route.getBounds(),{padding:[48,48]});
+        L.circleMarker(coords[0],{radius:9,color:'#fff',fillColor:'#2E7D32',fillOpacity:1,weight:2}).addTo(map).bindTooltip('Start');
+        L.circleMarker(coords[coords.length-1],{radius:9,color:'#fff',fillColor:'#C62828',fillOpacity:1,weight:2}).addTo(map).bindTooltip('Cíl');
+      } else {
+        map.setView([50.0755,14.4378],10);
+      }
+
+      const photos = (trip.photos||[]).sort((a,b)=>a.index-b.index);
+      const strip = document.getElementById('photo-strip');
+      for (const photo of photos) {
+        if (photo.lat && photo.lng) {
+          L.marker([photo.lat,photo.lng],{icon:cameraIcon()}).addTo(map)
+            .bindTooltip('Foto '+photo.index)
+            .on('click',()=>openLightbox(photo));
+        }
+        if (photo.url) {
+          const img = document.createElement('img');
+          img.className='photo-thumb'; img.src=photo.url; img.loading='lazy';
+          img.title='Foto '+photo.index;
+          img.addEventListener('click',()=>openLightbox(photo));
+          strip.appendChild(img);
+        }
+      }
+
+      if (!isEmbed) {
+        const link = WEB_BASE+'/trip.html?id='+id;
+        const embed = '<iframe src="'+WEB_BASE+'/trip.html?id='+id+'&embed=1" width="800" height="500" style="border:none;border-radius:12px;" allowfullscreen></iframe>';
+        document.getElementById('share-link-input').value = link;
+        document.getElementById('share-embed-input').value = embed;
+        document.getElementById('btn-share').addEventListener('click',()=>document.getElementById('share-panel').classList.add('active'));
+        document.getElementById('share-close').addEventListener('click',()=>document.getElementById('share-panel').classList.remove('active'));
+        document.getElementById('share-panel').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('active');});
+        function setupCopy(btnId, inputId, label) {
+          document.getElementById(btnId).addEventListener('click',async()=>{
+            const text = document.getElementById(inputId).value;
+            try { await navigator.clipboard.writeText(text); } catch { document.getElementById(inputId).select(); document.execCommand('copy'); }
+            const btn = document.getElementById(btnId);
+            btn.textContent='✓ Zkopírováno'; btn.classList.add('copied');
+            setTimeout(()=>{btn.textContent=label;btn.classList.remove('copied');},2000);
+          });
+        }
+        setupCopy('btn-copy-link','share-link-input','Kopírovat');
+        setupCopy('btn-copy-embed','share-embed-input','Kopírovat kód');
+      }
+
+      document.getElementById('lightbox-close').addEventListener('click',()=>document.getElementById('lightbox').classList.remove('active'));
+      document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('active');});
+    }
+
+    init();
+  </script>
 </body>
 </html>
