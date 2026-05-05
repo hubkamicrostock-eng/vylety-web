@@ -4,85 +4,152 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Výlet</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Výletní deník" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; flex-direction: column; height: 100vh; }
-    header {
-      background: #2E7D32; color: #fff; padding: 12px 20px;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      display: flex; flex-direction: column; height: 100dvh;
+    }
+
+    #header {
+      background: #2E7D32; color: #fff; padding: 12px 16px;
       display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+      z-index: 100;
     }
-    header a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem; }
-    header a:hover { color: #fff; }
-    header h1 { font-size: 1.1rem; flex: 1; }
+    #header a {
+      color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.9rem;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    #header a:hover { color: #fff; }
+    #header h1 {
+      font-size: 1.05rem; flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #btn-share {
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+      color: #fff; border-radius: 8px; padding: 7px 14px;
+      cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0;
+    }
+    #btn-share:hover { background: rgba(255,255,255,0.3); }
+
     #map { flex: 1; min-height: 0; }
-    #info-panel {
-      background: #fff; padding: 14px 20px; flex-shrink: 0;
-      border-top: 1px solid #e0e0e0; display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+
+    #stats-bar {
+      background: #fff; padding: 10px 8px; flex-shrink: 0;
+      border-top: 1px solid #e0e0e0;
+      display: flex; overflow-x: auto;
     }
-    .stat { flex: 1; min-width: 80px; text-align: center; padding: 4px 0; }
-    .stat-value { font-size: 1rem; font-weight: bold; color: #2E7D32; }
-    .stat-label { font-size: 0.72rem; color: #888; }
-    #controls {
-      background: #fff; padding: 10px 20px; flex-shrink: 0;
-      border-top: 1px solid #e0e0e0; display: flex; gap: 10px; align-items: center;
+    .stat { flex: 1; min-width: 64px; text-align: center; padding: 2px 4px; }
+    .stat-value { font-size: 0.95rem; font-weight: bold; color: #2E7D32; }
+    .stat-label { font-size: 0.68rem; color: #888; margin-top: 2px; }
+
+    #photo-strip {
+      background: #fff; padding: 8px 12px; flex-shrink: 0;
+      border-top: 1px solid #e0e0e0;
+      display: flex; gap: 8px; overflow-x: auto;
     }
-    .btn {
-      padding: 8px 18px; border: none; border-radius: 8px; cursor: pointer;
-      font-size: 0.9rem; font-weight: 600; transition: opacity 0.15s;
+    #photo-strip:empty { display: none; }
+    .photo-thumb {
+      width: 62px; height: 62px; object-fit: cover; border-radius: 7px;
+      cursor: pointer; flex-shrink: 0; border: 2px solid transparent;
+      transition: border-color 0.15s;
     }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: #2E7D32; color: #fff; }
-    .btn-secondary { background: #f0f0f0; color: #333; }
-    .btn-danger { background: #C62828; color: #fff; }
-    #speed-control { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 0.85rem; color: #555; }
-    #speed-control select { padding: 4px 8px; border-radius: 6px; border: 1px solid #ccc; }
-    #progress { flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden; margin: 0 12px; }
-    #progress-bar { height: 100%; background: #2E7D32; width: 0%; transition: width 0.1s; }
+    .photo-thumb:hover { border-color: #2E7D32; }
+
+    /* Share panel */
+    #share-panel {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 3000;
+      align-items: flex-end; justify-content: center;
+    }
+    #share-panel.active { display: flex; }
+    #share-box {
+      background: #fff; border-radius: 16px 16px 0 0;
+      padding: 20px 20px 32px; width: 100%; max-width: 600px;
+    }
+    #share-box h2 { font-size: 1rem; margin-bottom: 16px; color: #222; }
+    .share-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+    .share-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .share-input {
+      flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 0.78rem; color: #444; background: #f9f9f9;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      min-width: 0;
+    }
+    .copy-btn {
+      padding: 8px 14px; background: #2E7D32; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .copy-btn.copied { background: #1565C0; }
+    #share-close {
+      width: 100%; padding: 12px; background: #f0f0f0; border: none;
+      border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: #333;
+    }
+
     /* Lightbox */
     #lightbox {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      z-index: 2000; justify-content: center; align-items: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 2000;
+      justify-content: center; align-items: center; flex-direction: column; gap: 12px;
     }
     #lightbox.active { display: flex; }
-    #lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 8px; }
+    #lightbox img { max-width: 92vw; max-height: 76vh; border-radius: 8px; }
     #lightbox-close {
-      position: absolute; top: 20px; right: 24px; color: #fff; font-size: 2rem;
-      cursor: pointer; line-height: 1; background: none; border: none;
+      position: absolute; top: 16px; right: 20px; color: #fff;
+      font-size: 2rem; cursor: pointer; background: none; border: none; line-height: 1;
     }
-    #lightbox-caption { position: absolute; bottom: 30px; color: #fff; font-size: 0.95rem; text-align: center; }
-    .loading { padding: 40px; text-align: center; color: #888; }
+    #lightbox-caption { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
+
+    /* Embed mode */
+    body.embed #header,
+    body.embed #stats-bar,
+    body.embed #photo-strip { display: none !important; }
+    body.embed { height: 100vh; }
+
+    .loading { padding: 40px; text-align: center; color: #888; font-size: 0.9rem; }
+    .error-msg { padding: 40px; text-align: center; color: #C62828; font-size: 0.9rem; }
   </style>
 </head>
 <body>
-  <header>
-    <a href="index.html">← Zpět</a>
+  <div id="header">
+    <a href="index.html">← Výlety</a>
     <h1 id="trip-title">Načítám...</h1>
-  </header>
+    <button id="btn-share">Sdílet</button>
+  </div>
 
-  <div id="map"><div class="loading">Načítám mapu...</div></div>
+  <div id="map"><div class="loading">Načítám mapu…</div></div>
 
-  <div id="info-panel">
+  <div id="stats-bar">
     <div class="stat"><div class="stat-value" id="stat-dist">–</div><div class="stat-label">Vzdálenost</div></div>
     <div class="stat"><div class="stat-value" id="stat-dur">–</div><div class="stat-label">Doba</div></div>
-    <div class="stat"><div class="stat-value" id="stat-speed">–</div><div class="stat-label">Ø rychlost</div></div>
+    <div class="stat"><div class="stat-value" id="stat-speed">–</div><div class="stat-label">Ø km/h</div></div>
     <div class="stat"><div class="stat-value" id="stat-photos">–</div><div class="stat-label">Fotek</div></div>
     <div class="stat"><div class="stat-value" id="stat-date">–</div><div class="stat-label">Datum</div></div>
   </div>
 
-  <div id="controls">
-    <button class="btn btn-primary" id="btn-play">▶ Přehrát</button>
-    <button class="btn btn-secondary" id="btn-pause" disabled>⏸ Pauza</button>
-    <button class="btn btn-secondary" id="btn-reset" disabled>↺ Reset</button>
-    <div id="progress"><div id="progress-bar"></div></div>
-    <div id="speed-control">
-      <label for="speed-select">Rychlost:</label>
-      <select id="speed-select">
-        <option value="5">5×</option>
-        <option value="10" selected>10×</option>
-        <option value="20">20×</option>
-        <option value="50">50×</option>
-      </select>
+  <div id="photo-strip"></div>
+
+  <!-- Share panel -->
+  <div id="share-panel">
+    <div id="share-box">
+      <h2>🔗 Sdílet výlet</h2>
+      <p class="share-label">Odkaz (pro sdílení na sociálních sítích)</p>
+      <div class="share-row">
+        <input class="share-input" id="share-link-input" readonly />
+        <button class="copy-btn" id="btn-copy-link">Kopírovat</button>
+      </div>
+      <p class="share-label">Kód pro vložení na web (iframe)</p>
+      <div class="share-row">
+        <input class="share-input" id="share-embed-input" readonly />
+        <button class="copy-btn" id="btn-copy-embed">Kopírovat kód</button>
+      </div>
+      <button id="share-close">Zavřít</button>
     </div>
   </div>
 
@@ -95,6 +162,5 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="map.js"></script>
-  <script src="animation.js"></script>
 </body>
 </html>
