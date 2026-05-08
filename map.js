@@ -146,11 +146,48 @@ async function init() {
   const track = trip.track || [];
   if (track.length > 0) {
     const coords = track.map(p => [p.lat, p.lng]);
-    const route = L.polyline(coords, { color: '#FFD600', weight: 5, opacity: 0.95 }).addTo(map);
-    map.fitBounds(route.getBounds(), { padding: [48, 48] });
+    const modeColors = { walk: '#FFD600', car: '#1565C0' };
+
+    // Split into segments by mode
+    const segments = [];
+    let curMode = track[0].mode || 'walk';
+    let curPts = [[track[0].lat, track[0].lng]];
+    for (let i = 1; i < track.length; i++) {
+      const m = track[i].mode || 'walk';
+      curPts.push([track[i].lat, track[i].lng]);
+      if (m !== curMode && i < track.length - 1) {
+        segments.push({ mode: curMode, pts: curPts });
+        curMode = m;
+        curPts = [[track[i].lat, track[i].lng]];
+      }
+    }
+    segments.push({ mode: curMode, pts: curPts });
+
+    let allBounds = null;
+    for (const seg of segments) {
+      if (seg.pts.length < 2) continue;
+      const poly = L.polyline(seg.pts, { color: modeColors[seg.mode] || '#FFD600', weight: 5, opacity: 0.95 }).addTo(map);
+      allBounds = allBounds ? allBounds.extend(poly.getBounds()) : poly.getBounds();
+    }
+    if (allBounds) map.fitBounds(allBounds, { padding: [48, 48] });
 
     L.marker(coords[0], { icon: startIcon() }).addTo(map).bindTooltip('Start');
     L.marker(coords[coords.length - 1], { icon: endIcon() }).addTo(map).bindTooltip('Cíl');
+
+    // Legend - only if both modes present
+    const hasCar = track.some(p => p.mode === 'car');
+    const hasWalk = track.some(p => !p.mode || p.mode === 'walk');
+    if (hasCar && hasWalk) {
+      const legend = L.control({ position: 'topright' });
+      legend.onAdd = () => {
+        const d = L.DomUtil.create('div');
+        d.style.cssText = 'background:rgba(255,255,255,0.92);padding:8px 12px;border-radius:8px;font-size:13px;box-shadow:0 1px 5px rgba(0,0,0,0.2);line-height:1.8;';
+        d.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:24px;height:4px;background:#FFD600;border-radius:2px;"></span> Pěšky</div>' +
+                      '<div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:24px;height:4px;background:#1565C0;border-radius:2px;"></span> Auto</div>';
+        return d;
+      };
+      legend.addTo(map);
+    }
   } else {
     map.setView([50.0755, 14.4378], 10);
   }
