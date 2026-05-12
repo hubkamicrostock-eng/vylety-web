@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nový výlet</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      display: flex; flex-direction: column; height: 100dvh;
+    }
+    #header {
+      background: #2E7D32; color: #fff; padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    #header a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.9rem; flex-shrink: 0; white-space: nowrap; }
+    #header a:hover { color: #fff; }
+    #header h1 { font-size: 1.05rem; flex: 1; }
+    #toolbar {
+      background: #fff; padding: 8px 12px; border-bottom: 1px solid #e0e0e0;
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+    }
+    #toolbar-stat { font-size: 0.85rem; color: #444; flex: 1; min-width: 120px; }
+    .tool-btn {
+      padding: 6px 13px; border: 1px solid #ccc; background: #f5f5f5;
+      border-radius: 7px; cursor: pointer; font-size: 0.82rem; color: #333; white-space: nowrap;
+    }
+    .tool-btn:hover:not(:disabled) { background: #e8e8e8; }
+    .tool-btn:disabled { opacity: 0.35; cursor: default; }
+    #map { flex: 1; min-height: 0; cursor: crosshair; }
+    #map-hint {
+      position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); color: #fff; padding: 6px 16px;
+      border-radius: 20px; font-size: 0.78rem; pointer-events: none; z-index: 1000; white-space: nowrap;
+    }
+    #save-panel {
+      background: #fff; padding: 12px 16px; border-top: 2px solid #2E7D32;
+      flex-shrink: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .save-input {
+      flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #ccc;
+      border-radius: 8px; font-size: 0.9rem; color: #333;
+    }
+    #trip-dur { max-width: 120px; color: #555; }
+    #btn-save {
+      background: #2E7D32; color: #fff; border: none; border-radius: 8px;
+      padding: 9px 22px; cursor: pointer; font-size: 0.9rem; font-weight: 600; white-space: nowrap;
+    }
+    #btn-save:disabled { opacity: 0.45; cursor: default; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <a href="index.html">← Výlety</a>
+    <h1>Nový výlet</h1>
+  </div>
+
+  <div id="toolbar">
+    <span id="toolbar-stat">Body: <strong id="wp-count">0</strong> · Vzdálenost: <strong id="wp-dist">–</strong></span>
+    <button class="tool-btn" id="btn-undo" disabled>↩ Zpět</button>
+    <button class="tool-btn" id="btn-clear" disabled>🗑 Smazat vše</button>
+  </div>
+
+  <div id="map"></div>
+  <div id="map-hint">Klikni na mapu pro přidání bodu trasy</div>
+
+  <div id="save-panel">
+    <input class="save-input" id="trip-name" type="text" placeholder="Název výletu (povinné)" />
+    <input class="save-input" id="trip-dur" type="text" placeholder="Doba hh:mm:ss" />
+    <button id="btn-save" disabled>Uložit výlet</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://krtntseehlbrxvoiwflp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydG50c2VlaGxicnh2b2l3ZmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjY4OTcsImV4cCI6MjA5MzM0Mjg5N30.kltSaq1zpsBEWmTeUh5bXYbxLEHS2e7NVqs85mU0UE8';
+
+    let waypoints = [];
+    let markers = [];
+    let poly = null;
+
+    const map = L.map('map', {center:[50.0,15.5], zoom:8});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors', maxZoom:19,
+    }).addTo(map);
+
+    function haversineKm(lat1,lng1,lat2,lng2) {
+      const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+      const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+      return R*2*Math.asin(Math.sqrt(a));
+    }
+
+    function totalDist() {
+      let d=0;
+      for (let i=1;i<waypoints.length;i++) d+=haversineKm(waypoints[i-1][0],waypoints[i-1][1],waypoints[i][0],waypoints[i][1]);
+      return d;
+    }
+
+    function wpIcon(n, isFirst, isLast) {
+      const c = isFirst ? '#2E7D32' : isLast ? '#C62828' : '#1565C0';
+      return L.divIcon({
+        className:'',
+        html:`<div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="background:${c};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid #fff;">${n}</div>
+          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:9px solid ${c};margin-top:-1px;"></div>
+        </div>`,
+        iconSize:[26,37], iconAnchor:[13,37],
+      });
+    }
+
+    function render() {
+      markers.forEach(m=>map.removeLayer(m)); markers=[];
+      if (poly) { map.removeLayer(poly); poly=null; }
+
+      if (waypoints.length>=2) {
+        poly=L.polyline(waypoints,{color:'#1565C0',weight:4,opacity:0.9}).addTo(map);
+      }
+      waypoints.forEach((wp,i)=>{
+        const m=L.marker(wp,{icon:wpIcon(i+1, i===0, i===waypoints.length-1)}).addTo(map);
+        markers.push(m);
+      });
+
+      const n=waypoints.length, dist=totalDist();
+      document.getElementById('wp-count').textContent=n;
+      document.getElementById('wp-dist').textContent=n<1?'–':dist<1?Math.round(dist*1000)+' m':dist.toFixed(2)+' km';
+      document.getElementById('btn-undo').disabled=n===0;
+      document.getElementById('btn-clear').disabled=n===0;
+      updateSaveBtn();
+    }
+
+    function updateSaveBtn() {
+      document.getElementById('btn-save').disabled =
+        waypoints.length < 2 || !document.getElementById('trip-name').value.trim();
+    }
+
+    map.on('click', e=>{ waypoints.push([e.latlng.lat,e.latlng.lng]); render(); });
+
+    document.getElementById('btn-undo').addEventListener('click',()=>{ waypoints.pop(); render(); });
+    document.getElementById('btn-clear').addEventListener('click',()=>{
+      if (confirm('Smazat všechny body trasy?')) { waypoints=[]; render(); }
+    });
+    document.getElementById('trip-name').addEventListener('input', updateSaveBtn);
+
+    function parseDur(str) {
+      const p=String(str).trim().split(':').map(Number);
+      if (p.length===3) return p[0]*3600+p[1]*60+(p[2]||0);
+      if (p.length===2) return p[0]*60+(p[1]||0);
+      return parseInt(str)||0;
+    }
+
+    document.getElementById('btn-save').addEventListener('click', async ()=>{
+      const name=document.getElementById('trip-name').value.trim();
+      if (!name||waypoints.length<2) return;
+
+      const btn=document.getElementById('btn-save');
+      btn.textContent='Ukládám…'; btn.disabled=true;
+
+      const durSec=parseDur(document.getElementById('trip-dur').value);
+      const distKm=totalDist();
+      const now=Date.now();
+      const id='trip-web-'+now;
+
+      const track=waypoints.map((wp,i)=>({
+        lat:wp[0], lng:wp[1],
+        timestamp:new Date(now-(waypoints.length-1-i)*60000).toISOString(),
+        mode:'walk',
+      }));
+
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/trips`,{
+        method:'POST',
+        headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json',Prefer:'return=minimal'},
+        body:JSON.stringify({
+          id, name,
+          started_at:track[0].timestamp,
+          finished_at:track[track.length-1].timestamp,
+          distance_km:distKm,
+          duration_seconds:durSec,
+          avg_speed_kmh:0,
+          track,
+        }),
+      });
+
+      if (res.ok) {
+        location.href='trip.html?id='+id;
+      } else {
+        const err=await res.text();
+        alert('Chyba při ukládání ('+res.status+'): '+err);
+        btn.textContent='Uložit výlet'; btn.disabled=false;
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

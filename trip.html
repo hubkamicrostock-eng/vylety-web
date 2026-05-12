@@ -313,6 +313,26 @@
       currentMap.on('click', onMapEditClick);
     }
 
+    function distToSeg2D(lat, lng, p1, p2) {
+      const dx=p2.lng-p1.lng, dy=p2.lat-p1.lat, len2=dx*dx+dy*dy;
+      if (len2===0) return (lat-p1.lat)**2+(lng-p1.lng)**2;
+      const t=Math.max(0,Math.min(1,((lng-p1.lng)*dx+(lat-p1.lat)*dy)/len2));
+      return (lat-p1.lat-t*dy)**2+(lng-p1.lng-t*dx)**2;
+    }
+
+    function insertEditPoint(lat, lng) {
+      if (editTrack.length < 2) {
+        editTrack.push({lat,lng,timestamp:new Date().toISOString(),mode:'walk'});
+        return;
+      }
+      let bestIdx=editTrack.length-1, bestDist=Infinity;
+      for (let i=0;i<editTrack.length-1;i++) {
+        const d=distToSeg2D(lat,lng,editTrack[i],editTrack[i+1]);
+        if (d<bestDist) { bestDist=d; bestIdx=i; }
+      }
+      editTrack.splice(bestIdx+1,0,{lat,lng,timestamp:new Date().toISOString(),mode:editTrack[bestIdx].mode||'walk'});
+    }
+
     function onMapEditClick(e) {
       if (placingPhoto && pendingPhotoFile) {
         const maxIdx = editPhotos.reduce((m,p) => Math.max(m, p.index||0), 0);
@@ -332,7 +352,7 @@
         renderEditMarkers();
         return;
       }
-      editTrack.push({lat:e.latlng.lat, lng:e.latlng.lng, timestamp:new Date().toISOString(), mode:'walk'});
+      insertEditPoint(e.latlng.lat, e.latlng.lng);
       renderEditMarkers();
     }
 
