@@ -29,6 +29,16 @@
     .empty { text-align: center; padding: 60px 20px; color: #888; }
     .empty h2 { margin-bottom: 8px; font-size: 1.2rem; }
     .loading { text-align: center; padding: 60px; color: #888; }
+    .trip-card-wrap { position: relative; }
+    .btn-delete {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(198,40,40,0.08); border: 1px solid rgba(198,40,40,0.2);
+      color: #c62828; border-radius: 6px; padding: 4px 8px;
+      cursor: pointer; font-size: 0.78rem; opacity: 0; transition: opacity 0.15s;
+      z-index: 1;
+    }
+    .trip-card-wrap:hover .btn-delete { opacity: 1; }
+    .btn-delete:hover { background: #c62828; color: #fff; }
   </style>
 </head>
 <body>
@@ -74,21 +84,43 @@
           return;
         }
         content.innerHTML = `<div class="trips-grid">${trips.map(t => `
-          <a class="trip-card" href="trip.html?id=${t.id}">
-            <h2>${t.name || 'Výlet'}</h2>
-            <div class="date">${formatDate(t.started_at)}</div>
-            <div class="trip-stats">
-              <span class="trip-stat">📍 ${formatDistance(t.distance_km)}</span>
-              <span class="trip-stat">⏱ ${formatDuration(t.duration_seconds)}</span>
-              <span class="trip-stat">🚶 ${(t.avg_speed_kmh || 0).toFixed(1)} km/h</span>
-              <span class="trip-stat">📷 ${(t.photos || []).length}</span>
-            </div>
-          </a>
+          <div class="trip-card-wrap">
+            <a class="trip-card" href="trip.html?id=${t.id}">
+              <h2>${t.name || 'Výlet'}</h2>
+              <div class="date">${formatDate(t.started_at)}</div>
+              <div class="trip-stats">
+                <span class="trip-stat">📍 ${formatDistance(t.distance_km)}</span>
+                <span class="trip-stat">⏱ ${formatDuration(t.duration_seconds)}</span>
+                ${(t.avg_speed_kmh||0) > 0 ? `<span class="trip-stat">🚶 ${(t.avg_speed_kmh).toFixed(1)} km/h</span>` : ''}
+                <span class="trip-stat">📷 ${(t.photos || []).length}</span>
+              </div>
+            </a>
+            <button class="btn-delete" data-id="${t.id}" data-name="${(t.name||'Výlet').replace(/"/g,'&quot;')}">🗑 Smazat</button>
+          </div>
         `).join('')}</div>`;
       } catch (e) {
         content.innerHTML = `<div class="empty"><h2>Chyba načítání</h2><p>${e.message}</p></div>`;
       }
     }
+
+    async function deleteTrip(id, name) {
+      if (!confirm(`Opravdu smazat výlet "${name}"? Tato akce je nevratná.`)) return;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' }
+      });
+      if (res.ok) {
+        const wrap = document.querySelector(`.btn-delete[data-id="${id}"]`)?.closest('.trip-card-wrap');
+        if (wrap) wrap.remove();
+      } else {
+        alert('Smazání selhalo (' + res.status + ').');
+      }
+    }
+
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.btn-delete');
+      if (btn) { e.preventDefault(); deleteTrip(btn.dataset.id, btn.dataset.name); }
+    });
 
     init();
   </script>
