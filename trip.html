@@ -21,12 +21,28 @@
     #header a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.9rem; white-space: nowrap; flex-shrink: 0; }
     #header a:hover { color: #fff; }
     #header h1 { font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #btn-share {
+    .hdr-btn {
       background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
       color: #fff; border-radius: 8px; padding: 7px 14px;
       cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0;
     }
-    #map { flex: 1; min-height: 0; }
+    #edit-panel {
+      background: #fff; padding: 12px 16px; border-bottom: 2px solid #2E7D32;
+      display: none; flex-direction: column; gap: 10px; flex-shrink: 0;
+    }
+    .edit-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .edit-label { font-size: 0.78rem; color: #666; white-space: nowrap; min-width: 100px; }
+    .edit-input { flex: 1; min-width: 120px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.88rem; color: #333; }
+    .edit-actions { display: flex; gap: 8px; padding-top: 4px; }
+    .edit-hint { font-size: 0.75rem; color: #888; }
+    #edit-save-btn { background: #2E7D32; color: #fff; border: none; border-radius: 8px; padding: 8px 20px; cursor: pointer; font-size: 0.88rem; font-weight: 600; }
+    #edit-cancel-btn { background: #f0f0f0; color: #333; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 0.88rem; }
+    #map { flex: 1; min-height: 0; position: relative; }
+    #edit-map-hint {
+      display: none; position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.72); color: #fff; padding: 7px 16px;
+      border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 1000; white-space: nowrap;
+    }
     #stats-bar {
       background: #fff; padding: 10px 8px; flex-shrink: 0;
       border-top: 1px solid #e0e0e0; display: flex; overflow-x: auto;
@@ -58,10 +74,7 @@
       font-size: 0.78rem; color: #444; background: #f9f9f9;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
     }
-    .copy-btn {
-      padding: 8px 14px; background: #2E7D32; color: #fff; border: none;
-      border-radius: 8px; cursor: pointer; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;
-    }
+    .copy-btn { padding: 8px 14px; background: #2E7D32; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0; }
     .copy-btn.copied { background: #1565C0; }
     #share-close { width: 100%; padding: 12px; background: #f0f0f0; border: none; border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: #333; }
     #lightbox {
@@ -81,17 +94,47 @@
   <div id="header">
     <a href="index.html">← Výlety</a>
     <h1 id="trip-title">Načítám...</h1>
-    <button id="btn-share">Sdílet</button>
+    <button id="btn-edit" class="hdr-btn" style="display:none">✏️ Upravit</button>
+    <button id="btn-share" class="hdr-btn">Sdílet</button>
   </div>
+
+  <div id="edit-panel">
+    <div class="edit-row">
+      <span class="edit-label">Název</span>
+      <input class="edit-input" id="edit-name" type="text" />
+    </div>
+    <div class="edit-row">
+      <span class="edit-label">Vzdálenost (km)</span>
+      <input class="edit-input" id="edit-dist" type="number" step="0.01" min="0" style="max-width:120px;" />
+      <span class="edit-label" style="min-width:auto;">Doba (hh:mm:ss)</span>
+      <input class="edit-input" id="edit-dur" type="text" placeholder="01:30:00" style="max-width:110px;" />
+    </div>
+    <div class="edit-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#444;">
+        <input type="checkbox" id="edit-hide-speed" /> Odstranit průměrnou rychlost
+      </label>
+    </div>
+    <div class="edit-row">
+      <span class="edit-hint">Klikni na mapu = přidat bod · Pravý klik na bod = smazat bod</span>
+    </div>
+    <div class="edit-actions">
+      <button id="edit-save-btn">Uložit změny</button>
+      <button id="edit-cancel-btn">Zrušit</button>
+    </div>
+  </div>
+
   <div id="map"><div class="loading">Načítám mapu…</div></div>
+  <div id="edit-map-hint">Klikni na mapu pro přidání bodu · Pravý klik na bod = smazat</div>
+
   <div id="stats-bar">
     <div class="stat"><div class="stat-value" id="stat-dist">–</div><div class="stat-label">Vzdálenost</div></div>
     <div class="stat"><div class="stat-value" id="stat-dur">–</div><div class="stat-label">Doba</div></div>
-    <div class="stat"><div class="stat-value" id="stat-speed">–</div><div class="stat-label">Ø km/h</div></div>
+    <div class="stat" id="stat-speed-wrap"><div class="stat-value" id="stat-speed">–</div><div class="stat-label">Ø km/h</div></div>
     <div class="stat"><div class="stat-value" id="stat-photos">–</div><div class="stat-label">Fotek</div></div>
     <div class="stat"><div class="stat-value" id="stat-date">–</div><div class="stat-label">Datum</div></div>
   </div>
   <div id="photo-strip"></div>
+
   <div id="share-panel">
     <div id="share-box">
       <h2>🔗 Sdílet výlet</h2>
@@ -120,11 +163,24 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydG50c2VlaGxicnh2b2l3ZmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjY4OTcsImV4cCI6MjA5MzM0Mjg5N30.kltSaq1zpsBEWmTeUh5bXYbxLEHS2e7NVqs85mU0UE8';
     const WEB_BASE = 'https://hubkamicrostock-eng.github.io/vylety-web';
 
+    let currentTrip = null;
+    let currentMap = null;
+    let routeLayers = [];
+    let editLayers = [];
+    let editTrack = [];
+    let inEditMode = false;
+
     function getParam(name) { return new URLSearchParams(location.search).get(name); }
     function formatDistance(km) { return km < 1 ? Math.round(km*1000)+' m' : km.toFixed(2)+' km'; }
     function formatDuration(sec) {
       const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
       return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    }
+    function parseDuration(str) {
+      const p = String(str).split(':').map(Number);
+      if (p.length===3) return p[0]*3600+p[1]*60+p[2];
+      if (p.length===2) return p[0]*60+p[1];
+      return parseInt(str)||0;
     }
     function formatDate(iso) { return new Date(iso).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
 
@@ -139,101 +195,235 @@
     function startIcon() { return pinIcon('#2E7D32',''); }
     function endIcon() { return pinIcon('#C62828',''); }
 
-    function openLightbox(photo) {
-      document.getElementById('lightbox-img').src = photo.url;
-      document.getElementById('lightbox-caption').textContent = 'Foto '+photo.index+' · '+new Date(photo.timestamp).toLocaleString('cs-CZ');
-      document.getElementById('lightbox').classList.add('active');
+    function editDotIcon(isEnd) {
+      const c = isEnd ? '#C62828' : '#1565C0';
+      return L.divIcon({
+        className:'',
+        html:`<div style="width:13px;height:13px;background:${c};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);cursor:grab;"></div>`,
+        iconSize:[13,13], iconAnchor:[6,6],
+      });
     }
 
-    async function init() {
-      const id = getParam('id');
-      const isEmbed = getParam('embed') === '1';
-      if (isEmbed) document.body.classList.add('embed');
-      if (!id) { document.getElementById('trip-title').textContent='Neplatný odkaz'; return; }
+    function clearLayers(arr) {
+      arr.forEach(l => { try { currentMap.removeLayer(l); } catch{} });
+      arr.length = 0;
+    }
 
-      const map = L.map('map');
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      const res = await fetch(SUPABASE_URL+'/rest/v1/trips?id=eq.'+id+'&select=*,photos(*)',
-        {headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
-      const data = await res.json();
-      const trip = data[0];
-      if (!trip) { document.getElementById('trip-title').textContent='Výlet nenalezen'; return; }
-
-      const name = trip.name || 'Výlet';
-      document.title = name;
-      document.getElementById('trip-title').textContent = name;
-      document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km);
-      document.getElementById('stat-dur').textContent = formatDuration(trip.duration_seconds);
-      document.getElementById('stat-speed').textContent = (trip.avg_speed_kmh||0).toFixed(1);
+    function renderStats(trip) {
+      document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km||0);
+      document.getElementById('stat-dur').textContent = formatDuration(trip.duration_seconds||0);
       document.getElementById('stat-photos').textContent = (trip.photos||[]).length;
       document.getElementById('stat-date').textContent = formatDate(trip.started_at);
+      const speed = trip.avg_speed_kmh||0;
+      document.getElementById('stat-speed').textContent = speed > 0 ? speed.toFixed(1) : '–';
+      document.getElementById('stat-speed-wrap').style.display = speed > 0 ? '' : 'none';
+    }
 
+    function renderRoute(trip) {
+      clearLayers(routeLayers);
       const track = trip.track || [];
       if (track.length > 0) {
         const coords = track.map(p=>[p.lat,p.lng]);
         const modeColors = {walk:'#FFD600',car:'#1565C0'};
-        const segments = [];
-        let curMode = track[0].mode||'walk', curPts = [[track[0].lat,track[0].lng]];
+        const segments=[], pushSeg=(mode,pts)=>{ if(pts.length>=2) segments.push({mode,pts}); };
+        let curMode=track[0].mode||'walk', curPts=[[track[0].lat,track[0].lng]];
         for (let i=1;i<track.length;i++) {
           const m=track[i].mode||'walk';
           curPts.push([track[i].lat,track[i].lng]);
-          if (m!==curMode&&i<track.length-1) { segments.push({mode:curMode,pts:curPts}); curMode=m; curPts=[[track[i].lat,track[i].lng]]; }
+          if (m!==curMode&&i<track.length-1) { pushSeg(curMode,curPts); curMode=m; curPts=[[track[i].lat,track[i].lng]]; }
         }
-        segments.push({mode:curMode,pts:curPts});
-        let allBounds=null;
+        pushSeg(curMode,curPts);
+        let bounds=null;
         for (const seg of segments) {
-          if (seg.pts.length<2) continue;
-          const poly=L.polyline(seg.pts,{color:modeColors[seg.mode]||'#FFD600',weight:5,opacity:0.95}).addTo(map);
-          allBounds=allBounds?allBounds.extend(poly.getBounds()):poly.getBounds();
+          const poly=L.polyline(seg.pts,{color:modeColors[seg.mode]||'#FFD600',weight:5,opacity:0.95}).addTo(currentMap);
+          routeLayers.push(poly);
+          bounds=bounds?bounds.extend(poly.getBounds()):poly.getBounds();
         }
-        if (allBounds) map.fitBounds(allBounds,{padding:[48,48]});
-        L.marker(coords[0],{icon:startIcon()}).addTo(map).bindTooltip('Start');
-        L.marker(coords[coords.length-1],{icon:endIcon()}).addTo(map).bindTooltip('Cíl');
+        if (bounds) currentMap.fitBounds(bounds,{padding:[48,48]});
+        const sm=L.marker(coords[0],{icon:startIcon()}).addTo(currentMap).bindTooltip('Start');
+        const em=L.marker(coords[coords.length-1],{icon:endIcon()}).addTo(currentMap).bindTooltip('Cíl');
+        routeLayers.push(sm,em);
         const hasCar=track.some(p=>p.mode==='car'), hasWalk=track.some(p=>!p.mode||p.mode==='walk');
         if (hasCar&&hasWalk) {
           const legend=L.control({position:'topright'});
           legend.onAdd=()=>{const d=L.DomUtil.create('div');d.style.cssText='background:rgba(255,255,255,0.92);padding:8px 12px;border-radius:8px;font-size:13px;box-shadow:0 1px 5px rgba(0,0,0,0.2);line-height:1.8;';d.innerHTML='<div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:24px;height:4px;background:#FFD600;border-radius:2px;"></span> Pěšky</div><div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:24px;height:4px;background:#1565C0;border-radius:2px;"></span> Auto</div>';return d;};
-          legend.addTo(map);
+          legend.addTo(currentMap);
+          routeLayers.push(legend);
         }
       } else {
-        map.setView([50.0755,14.4378],10);
+        currentMap.setView([50.0755,14.4378],10);
       }
 
-      const photos = (trip.photos||[]).sort((a,b)=>a.index-b.index);
-      const strip = document.getElementById('photo-strip');
+      const photos=(trip.photos||[]).sort((a,b)=>a.index-b.index);
+      const strip=document.getElementById('photo-strip');
+      strip.innerHTML='';
       for (const photo of photos) {
-        if (photo.lat && photo.lng) {
-          L.marker([photo.lat,photo.lng],{icon:cameraIcon()}).addTo(map)
-            .bindTooltip('Foto '+photo.index)
-            .on('click',()=>openLightbox(photo));
+        if (photo.lat&&photo.lng) {
+          const m=L.marker([photo.lat,photo.lng],{icon:cameraIcon()}).addTo(currentMap).bindTooltip('Foto '+photo.index).on('click',()=>openLightbox(photo));
+          routeLayers.push(m);
         }
         if (photo.url) {
-          const img = document.createElement('img');
-          img.className='photo-thumb'; img.src=photo.url; img.loading='lazy';
-          img.title='Foto '+photo.index;
+          const img=document.createElement('img');
+          img.className='photo-thumb'; img.src=photo.url; img.loading='lazy'; img.title='Foto '+photo.index;
           img.addEventListener('click',()=>openLightbox(photo));
           strip.appendChild(img);
         }
       }
+    }
+
+    // ── EDIT MODE ────────────────────────────────────────────
+    function enterEditMode() {
+      inEditMode = true;
+      editTrack = JSON.parse(JSON.stringify(currentTrip.track||[]));
+      clearLayers(routeLayers);
+
+      document.getElementById('edit-panel').style.display='flex';
+      document.getElementById('btn-edit').style.display='none';
+      document.getElementById('btn-share').style.display='none';
+      document.getElementById('edit-map-hint').style.display='block';
+
+      document.getElementById('edit-name').value = currentTrip.name||'';
+      document.getElementById('edit-dist').value = (currentTrip.distance_km||0).toFixed(2);
+      document.getElementById('edit-dur').value = formatDuration(currentTrip.duration_seconds||0);
+      document.getElementById('edit-hide-speed').checked = !(currentTrip.avg_speed_kmh > 0);
+
+      renderEditMarkers();
+      currentMap.on('click', onMapEditClick);
+    }
+
+    function onMapEditClick(e) {
+      editTrack.push({lat:e.latlng.lat, lng:e.latlng.lng, timestamp:new Date().toISOString(), mode:'walk'});
+      renderEditMarkers();
+    }
+
+    function renderEditMarkers() {
+      clearLayers(editLayers);
+      if (editTrack.length < 1) return;
+
+      // Subsample for large tracks (max 150 editable points)
+      const step = Math.max(1, Math.floor(editTrack.length/150));
+      const indices = [];
+      for (let i=0;i<editTrack.length;i+=step) indices.push(i);
+      if (indices[indices.length-1]!==editTrack.length-1) indices.push(editTrack.length-1);
+
+      // Polyline
+      const poly = L.polyline(editTrack.map(p=>[p.lat,p.lng]),{color:'#1565C0',weight:4,opacity:0.85}).addTo(currentMap);
+      editLayers.push(poly);
+
+      // Draggable markers
+      indices.forEach(idx => {
+        const pt = editTrack[idx];
+        const isEnd = idx===editTrack.length-1;
+        const marker = L.marker([pt.lat,pt.lng],{
+          icon: editDotIcon(isEnd),
+          draggable: true,
+          zIndexOffset: 500,
+        }).addTo(currentMap);
+
+        marker.on('drag', e=>{
+          const {lat,lng}=e.latlng;
+          editTrack[idx]={...editTrack[idx],lat,lng};
+          poly.setLatLngs(editTrack.map(p=>[p.lat,p.lng]));
+        });
+
+        marker.on('contextmenu', ()=>{
+          editTrack.splice(idx,1);
+          renderEditMarkers();
+        });
+
+        editLayers.push(marker);
+      });
+    }
+
+    async function saveEdits() {
+      const name = document.getElementById('edit-name').value.trim()||currentTrip.name;
+      const distKm = parseFloat(document.getElementById('edit-dist').value)||0;
+      const durSec = parseDuration(document.getElementById('edit-dur').value);
+      const hideSpeed = document.getElementById('edit-hide-speed').checked;
+      const avgSpeed = hideSpeed ? 0 : (durSec>0?(distKm/durSec)*3600:(currentTrip.avg_speed_kmh||0));
+
+      const btn=document.getElementById('edit-save-btn');
+      btn.textContent='Ukládám…'; btn.disabled=true;
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${currentTrip.id}`,{
+        method:'PATCH',
+        headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json',Prefer:'return=minimal'},
+        body:JSON.stringify({name,distance_km:distKm,duration_seconds:durSec,avg_speed_kmh:avgSpeed,track:editTrack}),
+      });
+
+      if (res.ok) {
+        currentTrip = {...currentTrip, name, distance_km:distKm, duration_seconds:durSec, avg_speed_kmh:avgSpeed, track:editTrack};
+        document.getElementById('trip-title').textContent=name;
+        document.title=name;
+        renderStats(currentTrip);
+        exitEditMode();
+        renderRoute(currentTrip);
+      } else {
+        alert('Chyba při ukládání ('+res.status+'). V Supabase Dashboard povol UPDATE pro anon roli na tabulce trips.');
+        btn.textContent='Uložit změny'; btn.disabled=false;
+      }
+    }
+
+    function exitEditMode() {
+      inEditMode=false;
+      currentMap.off('click',onMapEditClick);
+      clearLayers(editLayers);
+      document.getElementById('edit-panel').style.display='none';
+      document.getElementById('btn-edit').style.display='';
+      document.getElementById('btn-share').style.display='';
+      document.getElementById('edit-map-hint').style.display='none';
+      const btn=document.getElementById('edit-save-btn');
+      btn.textContent='Uložit změny'; btn.disabled=false;
+    }
+    // ────────────────────────────────────────────────────────
+
+    function openLightbox(photo) {
+      document.getElementById('lightbox-img').src=photo.url;
+      document.getElementById('lightbox-caption').textContent='Foto '+photo.index+' · '+new Date(photo.timestamp).toLocaleString('cs-CZ');
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    async function init() {
+      const id=getParam('id');
+      const isEmbed=getParam('embed')==='1';
+      if (isEmbed) document.body.classList.add('embed');
+      if (!id) { document.getElementById('trip-title').textContent='Neplatný odkaz'; return; }
+
+      currentMap=L.map('map');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',maxZoom:19,
+      }).addTo(currentMap);
+
+      const res=await fetch(SUPABASE_URL+'/rest/v1/trips?id=eq.'+id+'&select=*,photos(*)',
+        {headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+      const data=await res.json();
+      currentTrip=data[0];
+      if (!currentTrip) { document.getElementById('trip-title').textContent='Výlet nenalezen'; return; }
+
+      document.title=currentTrip.name||'Výlet';
+      document.getElementById('trip-title').textContent=currentTrip.name||'Výlet';
+      renderStats(currentTrip);
+      renderRoute(currentTrip);
 
       if (!isEmbed) {
-        const link = WEB_BASE+'/trip.html?id='+id;
-        const embed = '<iframe src="'+WEB_BASE+'/trip.html?id='+id+'&embed=1" width="800" height="500" style="border:none;border-radius:12px;" allowfullscreen></iframe>';
-        document.getElementById('share-link-input').value = link;
-        document.getElementById('share-embed-input').value = embed;
+        document.getElementById('btn-edit').style.display='';
+        document.getElementById('btn-edit').addEventListener('click',enterEditMode);
+        document.getElementById('edit-save-btn').addEventListener('click',saveEdits);
+        document.getElementById('edit-cancel-btn').addEventListener('click',()=>{ exitEditMode(); renderRoute(currentTrip); });
+
+        const link=WEB_BASE+'/trip.html?id='+id;
+        const embed='<iframe src="'+WEB_BASE+'/trip.html?id='+id+'&embed=1" width="800" height="500" style="border:none;border-radius:12px;" allowfullscreen></iframe>';
+        document.getElementById('share-link-input').value=link;
+        document.getElementById('share-embed-input').value=embed;
         document.getElementById('btn-share').addEventListener('click',()=>document.getElementById('share-panel').classList.add('active'));
         document.getElementById('share-close').addEventListener('click',()=>document.getElementById('share-panel').classList.remove('active'));
         document.getElementById('share-panel').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('active');});
-        function setupCopy(btnId, inputId, label) {
+        function setupCopy(btnId,inputId,label) {
           document.getElementById(btnId).addEventListener('click',async()=>{
-            const text = document.getElementById(inputId).value;
-            try { await navigator.clipboard.writeText(text); } catch { document.getElementById(inputId).select(); document.execCommand('copy'); }
-            const btn = document.getElementById(btnId);
-            btn.textContent='✓ Zkopírováno'; btn.classList.add('copied');
+            const text=document.getElementById(inputId).value;
+            try{await navigator.clipboard.writeText(text);}catch{document.getElementById(inputId).select();document.execCommand('copy');}
+            const btn=document.getElementById(btnId);
+            btn.textContent='✓ Zkopírováno';btn.classList.add('copied');
             setTimeout(()=>{btn.textContent=label;btn.classList.remove('copied');},2000);
           });
         }
