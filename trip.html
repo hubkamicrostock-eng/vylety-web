@@ -250,13 +250,14 @@
       const hasCar = track.some(p=>p.mode==='car'), hasWalk = track.some(p=>!p.mode||p.mode==='walk');
       const mixed = hasCar && hasWalk;
 
+      document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km||0);
       if (mixed) {
         const d = computeModeDist(track);
-        document.getElementById('stat-dist').textContent = formatDistance(d.total);
-        document.getElementById('stat-car').textContent = formatDistance(d.car);
-        document.getElementById('stat-walk').textContent = formatDistance(d.walk);
-      } else {
-        document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km||0);
+        const total = d.total || 1;
+        const carKm = (trip.distance_km||0) * d.car / total;
+        const walkKm = (trip.distance_km||0) * d.walk / total;
+        document.getElementById('stat-car').textContent = formatDistance(carKm);
+        document.getElementById('stat-walk').textContent = formatDistance(walkKm);
       }
       document.getElementById('stat-car-wrap').style.display = mixed ? '' : 'none';
       document.getElementById('stat-walk-wrap').style.display = mixed ? '' : 'none';
