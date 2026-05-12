@@ -115,7 +115,12 @@
       </label>
     </div>
     <div class="edit-row">
-      <span class="edit-hint">Klikni na mapu = přidat bod · Shift+klik na bod = smazat bod</span>
+      <span class="edit-hint">Klikni na mapu = přidat bod trasy · Shift+klik na bod = smazat bod</span>
+    </div>
+    <div class="edit-row" style="gap:12px;align-items:center;">
+      <button id="edit-add-photo-btn" type="button" style="background:#FF6F00;color:#fff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:0.85rem;flex-shrink:0;">📷 Přidat fotku</button>
+      <input type="file" id="edit-photo-file" accept="image/*" style="display:none" />
+      <span id="edit-photo-hint" style="display:none;color:#e53935;font-size:0.8rem;font-style:italic;">Klikni na mapu pro umístění fotky · Esc = zrušit</span>
     </div>
     <div class="edit-actions">
       <button id="edit-save-btn">Uložit změny</button>
@@ -168,6 +173,9 @@
     let routeLayers = [];
     let editLayers = [];
     let editTrack = [];
+    let editPhotos = [];
+    let pendingPhotoFile = null;
+    let placingPhoto = false;
     let inEditMode = false;
 
     function getParam(name) { return new URLSearchParams(location.search).get(name); }
@@ -194,6 +202,18 @@
     function cameraIcon() { return pinIcon('#FF6F00','📷'); }
     function startIcon() { return pinIcon('#2E7D32',''); }
     function endIcon() { return pinIcon('#C62828',''); }
+
+    function editPhotoIcon(isNew) {
+      const c = isNew ? '#43A047' : '#FF6F00';
+      return L.divIcon({
+        className:'',
+        html:`<div style="display:flex;flex-direction:column;align-items:center;cursor:grab;">
+          <div style="background:${c};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.35);border:2px solid #fff;transition:filter 0.1s;">📷</div>
+          <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid ${c};margin-top:-1px;"></div>
+        </div>`,
+        iconSize:[28,40], iconAnchor:[14,40],
+      });
+    }
 
     function editDotIcon(color) {
       return L.divIcon({
@@ -274,6 +294,9 @@
     function enterEditMode() {
       inEditMode = true;
       editTrack = JSON.parse(JSON.stringify(currentTrip.track||[]));
+      editPhotos = JSON.parse(JSON.stringify(currentTrip.photos||[]));
+      pendingPhotoFile = null;
+      placingPhoto = false;
       clearLayers(routeLayers);
 
       document.getElementById('edit-panel').style.display='flex';
@@ -291,58 +314,96 @@
     }
 
     function onMapEditClick(e) {
+      if (placingPhoto && pendingPhotoFile) {
+        const maxIdx = editPhotos.reduce((m,p) => Math.max(m, p.index||0), 0);
+        editPhotos.push({
+          _file: pendingPhotoFile,
+          id: 'photo-new-' + Date.now(),
+          trip_id: currentTrip.id,
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          index: maxIdx + 1,
+          timestamp: new Date().toISOString(),
+        });
+        pendingPhotoFile = null;
+        placingPhoto = false;
+        document.getElementById('edit-photo-hint').style.display = 'none';
+        document.getElementById('map').style.cursor = '';
+        renderEditMarkers();
+        return;
+      }
       editTrack.push({lat:e.latlng.lat, lng:e.latlng.lng, timestamp:new Date().toISOString(), mode:'walk'});
       renderEditMarkers();
     }
 
     function renderEditMarkers() {
       clearLayers(editLayers);
-      if (editTrack.length < 1) return;
 
-      // Subsample for large tracks (max 150 editable points)
-      const step = Math.max(1, Math.floor(editTrack.length/150));
-      const indices = [];
-      for (let i=0;i<editTrack.length;i+=step) indices.push(i);
-      if (indices[indices.length-1]!==editTrack.length-1) indices.push(editTrack.length-1);
+      if (editTrack.length >= 1) {
+        // Subsample for large tracks (max 150 editable points)
+        const step = Math.max(1, Math.floor(editTrack.length/150));
+        const indices = [];
+        for (let i=0;i<editTrack.length;i+=step) indices.push(i);
+        if (indices[indices.length-1]!==editTrack.length-1) indices.push(editTrack.length-1);
 
-      // Polyline
-      const poly = L.polyline(editTrack.map(p=>[p.lat,p.lng]),{color:'#1565C0',weight:4,opacity:0.85}).addTo(currentMap);
-      editLayers.push(poly);
+        // Polyline
+        const poly = L.polyline(editTrack.map(p=>[p.lat,p.lng]),{color:'#1565C0',weight:4,opacity:0.85}).addTo(currentMap);
+        editLayers.push(poly);
 
-      // Draggable markers
-      indices.forEach(idx => {
-        const pt = editTrack[idx];
-        const isEnd = idx===editTrack.length-1;
-        const normalColor = isEnd ? '#C62828' : '#1565C0';
-        const marker = L.marker([pt.lat,pt.lng],{
-          icon: editDotIcon(normalColor),
+        // Draggable track markers
+        indices.forEach(idx => {
+          const pt = editTrack[idx];
+          const isEnd = idx===editTrack.length-1;
+          const normalColor = isEnd ? '#C62828' : '#1565C0';
+          const marker = L.marker([pt.lat,pt.lng],{
+            icon: editDotIcon(normalColor),
+            draggable: true,
+            zIndexOffset: 500,
+          }).addTo(currentMap);
+
+          marker.on('drag', e=>{
+            const {lat,lng}=e.latlng;
+            editTrack[idx]={...editTrack[idx],lat,lng};
+            poly.setLatLngs(editTrack.map(p=>[p.lat,p.lng]));
+          });
+          marker.on('mouseover', ()=>{
+            const dot = marker.getElement()?.querySelector('div');
+            if (dot) { dot.style.background='#e53935'; dot.style.transform='scale(1.5)'; dot.style.cursor='pointer'; }
+          });
+          marker.on('mouseout', ()=>{
+            const dot = marker.getElement()?.querySelector('div');
+            if (dot) { dot.style.background=normalColor; dot.style.transform='scale(1)'; dot.style.cursor='grab'; }
+          });
+          marker.on('click', e=>{
+            if (e.originalEvent.shiftKey) { editTrack.splice(idx,1); renderEditMarkers(); }
+          });
+          editLayers.push(marker);
+        });
+      }
+
+      // Draggable photo markers
+      editPhotos.forEach((photo, pi) => {
+        if (!photo.lat && !photo.lng) return;
+        const isNew = !!photo._file;
+        const pm = L.marker([photo.lat, photo.lng], {
+          icon: editPhotoIcon(isNew),
           draggable: true,
-          zIndexOffset: 500,
+          zIndexOffset: 700,
         }).addTo(currentMap);
 
-        marker.on('drag', e=>{
-          const {lat,lng}=e.latlng;
-          editTrack[idx]={...editTrack[idx],lat,lng};
-          poly.setLatLngs(editTrack.map(p=>[p.lat,p.lng]));
+        pm.on('dragend', e => {
+          const {lat,lng} = e.target.getLatLng();
+          editPhotos[pi] = {...editPhotos[pi], lat, lng};
         });
-
-        marker.on('mouseover', ()=>{
-          const dot = marker.getElement()?.querySelector('div');
-          if (dot) { dot.style.background='#e53935'; dot.style.transform='scale(1.5)'; dot.style.cursor='pointer'; }
+        pm.on('mouseover', () => {
+          const inner = pm.getElement()?.querySelector('div > div');
+          if (inner) inner.style.filter = 'brightness(1.3) drop-shadow(0 0 5px rgba(255,255,255,0.9))';
         });
-        marker.on('mouseout', ()=>{
-          const dot = marker.getElement()?.querySelector('div');
-          if (dot) { dot.style.background=normalColor; dot.style.transform='scale(1)'; dot.style.cursor='grab'; }
+        pm.on('mouseout', () => {
+          const inner = pm.getElement()?.querySelector('div > div');
+          if (inner) inner.style.filter = '';
         });
-
-        marker.on('click', e=>{
-          if (e.originalEvent.shiftKey) {
-            editTrack.splice(idx,1);
-            renderEditMarkers();
-          }
-        });
-
-        editLayers.push(marker);
+        editLayers.push(pm);
       });
     }
 
@@ -362,21 +423,66 @@
         body:JSON.stringify({name,distance_km:distKm,duration_seconds:durSec,avg_speed_kmh:avgSpeed,track:editTrack}),
       });
 
-      if (res.ok) {
-        currentTrip = {...currentTrip, name, distance_km:distKm, duration_seconds:durSec, avg_speed_kmh:avgSpeed, track:editTrack};
-        document.getElementById('trip-title').textContent=name;
-        document.title=name;
-        renderStats(currentTrip);
-        exitEditMode();
-        renderRoute(currentTrip);
-      } else {
-        alert('Chyba při ukládání ('+res.status+'). V Supabase Dashboard povol UPDATE pro anon roli na tabulce trips.');
+      if (!res.ok) {
+        alert('Chyba při ukládání trasy ('+res.status+').');
         btn.textContent='Uložit změny'; btn.disabled=false;
+        return;
       }
+
+      // Save photo changes
+      const origPhotos = currentTrip.photos||[];
+      const hdrs = {apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json',Prefer:'return=minimal'};
+      for (const photo of editPhotos) {
+        if (photo._file) {
+          // New photo — upload file, then insert record
+          try {
+            btn.textContent = 'Nahrávám fotku…';
+            const ext = (photo._file.name.split('.').pop()||'jpg').toLowerCase();
+            const fname = currentTrip.id+'/'+Date.now()+'.'+ext;
+            const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/trip-photos/${fname}`,{
+              method:'POST',
+              headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':photo._file.type||'image/jpeg'},
+              body: photo._file,
+            });
+            if (upRes.ok) {
+              const url = `${SUPABASE_URL}/storage/v1/object/public/trip-photos/${fname}`;
+              await fetch(`${SUPABASE_URL}/rest/v1/photos`,{
+                method:'POST', headers:hdrs,
+                body:JSON.stringify({id:photo.id,trip_id:currentTrip.id,url,lat:photo.lat,lng:photo.lng,timestamp:photo.timestamp,index:photo.index}),
+              });
+            }
+          } catch(err) { console.error('Photo upload error', err); }
+        } else {
+          // Existing photo — patch if moved
+          const orig = origPhotos.find(p=>p.id===photo.id);
+          if (orig && (Math.abs((orig.lat||0)-(photo.lat||0))>1e-8 || Math.abs((orig.lng||0)-(photo.lng||0))>1e-8)) {
+            await fetch(`${SUPABASE_URL}/rest/v1/photos?id=eq.${photo.id}`,{
+              method:'PATCH', headers:hdrs,
+              body:JSON.stringify({lat:photo.lat,lng:photo.lng}),
+            });
+          }
+        }
+      }
+
+      // Refresh photos from server
+      btn.textContent = 'Načítám…';
+      const photosRes = await fetch(`${SUPABASE_URL}/rest/v1/photos?trip_id=eq.${currentTrip.id}&order=index`,
+        {headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+      const freshPhotos = photosRes.ok ? await photosRes.json() : origPhotos;
+
+      currentTrip = {...currentTrip, name, distance_km:distKm, duration_seconds:durSec, avg_speed_kmh:avgSpeed, track:editTrack, photos:freshPhotos};
+      document.getElementById('trip-title').textContent=name;
+      document.title=name;
+      renderStats(currentTrip);
+      exitEditMode();
+      renderRoute(currentTrip);
     }
 
     function exitEditMode() {
       inEditMode=false;
+      pendingPhotoFile=null; placingPhoto=false;
+      document.getElementById('edit-photo-hint').style.display='none';
+      document.getElementById('map').style.cursor='';
       currentMap.off('click',onMapEditClick);
       clearLayers(editLayers);
       document.getElementById('edit-panel').style.display='none';
@@ -421,6 +527,22 @@
         document.getElementById('btn-edit').addEventListener('click',enterEditMode);
         document.getElementById('edit-save-btn').addEventListener('click',saveEdits);
         document.getElementById('edit-cancel-btn').addEventListener('click',()=>{ exitEditMode(); renderRoute(currentTrip); });
+        document.getElementById('edit-add-photo-btn').addEventListener('click',()=>document.getElementById('edit-photo-file').click());
+        document.getElementById('edit-photo-file').addEventListener('change',e=>{
+          const file=e.target.files[0];
+          if (!file||!inEditMode) return;
+          pendingPhotoFile=file; placingPhoto=true;
+          document.getElementById('edit-photo-hint').style.display='';
+          document.getElementById('map').style.cursor='crosshair';
+          e.target.value='';
+        });
+        document.addEventListener('keydown',e=>{
+          if (e.key==='Escape'&&placingPhoto) {
+            pendingPhotoFile=null; placingPhoto=false;
+            document.getElementById('edit-photo-hint').style.display='none';
+            document.getElementById('map').style.cursor='';
+          }
+        });
 
         const link=WEB_BASE+'/trip.html?id='+id;
         const embed='<iframe src="'+WEB_BASE+'/trip.html?id='+id+'&embed=1" width="800" height="500" style="border:none;border-radius:12px;" allowfullscreen></iframe>';
