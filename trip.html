@@ -115,7 +115,7 @@
       </label>
     </div>
     <div class="edit-row">
-      <span class="edit-hint">Klikni na mapu = přidat bod · Pravý klik na bod = smazat bod</span>
+      <span class="edit-hint">Klikni na mapu = přidat bod · Shift+klik na bod = smazat bod</span>
     </div>
     <div class="edit-actions">
       <button id="edit-save-btn">Uložit změny</button>
@@ -124,7 +124,7 @@
   </div>
 
   <div id="map"><div class="loading">Načítám mapu…</div></div>
-  <div id="edit-map-hint">Klikni na mapu pro přidání bodu · Pravý klik na bod = smazat</div>
+  <div id="edit-map-hint">Klikni na mapu = přidat bod · Shift+klik na bod = smazat</div>
 
   <div id="stats-bar">
     <div class="stat"><div class="stat-value" id="stat-dist">–</div><div class="stat-label">Vzdálenost</div></div>
@@ -195,12 +195,11 @@
     function startIcon() { return pinIcon('#2E7D32',''); }
     function endIcon() { return pinIcon('#C62828',''); }
 
-    function editDotIcon(isEnd) {
-      const c = isEnd ? '#C62828' : '#1565C0';
+    function editDotIcon(color) {
       return L.divIcon({
         className:'',
-        html:`<div style="width:13px;height:13px;background:${c};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);cursor:grab;"></div>`,
-        iconSize:[13,13], iconAnchor:[6,6],
+        html:`<div style="width:14px;height:14px;background:${color};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);cursor:grab;transition:transform 0.1s;"></div>`,
+        iconSize:[14,14], iconAnchor:[7,7],
       });
     }
 
@@ -314,8 +313,9 @@
       indices.forEach(idx => {
         const pt = editTrack[idx];
         const isEnd = idx===editTrack.length-1;
+        const normalColor = isEnd ? '#C62828' : '#1565C0';
         const marker = L.marker([pt.lat,pt.lng],{
-          icon: editDotIcon(isEnd),
+          icon: editDotIcon(normalColor),
           draggable: true,
           zIndexOffset: 500,
         }).addTo(currentMap);
@@ -326,9 +326,20 @@
           poly.setLatLngs(editTrack.map(p=>[p.lat,p.lng]));
         });
 
-        marker.on('contextmenu', ()=>{
-          editTrack.splice(idx,1);
-          renderEditMarkers();
+        marker.on('mouseover', ()=>{
+          const dot = marker.getElement()?.querySelector('div');
+          if (dot) { dot.style.background='#e53935'; dot.style.transform='scale(1.5)'; dot.style.cursor='pointer'; }
+        });
+        marker.on('mouseout', ()=>{
+          const dot = marker.getElement()?.querySelector('div');
+          if (dot) { dot.style.background=normalColor; dot.style.transform='scale(1)'; dot.style.cursor='grab'; }
+        });
+
+        marker.on('click', e=>{
+          if (e.originalEvent.shiftKey) {
+            editTrack.splice(idx,1);
+            renderEditMarkers();
+          }
         });
 
         editLayers.push(marker);
