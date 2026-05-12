@@ -133,6 +133,8 @@
 
   <div id="stats-bar">
     <div class="stat"><div class="stat-value" id="stat-dist">–</div><div class="stat-label">Vzdálenost</div></div>
+    <div class="stat" id="stat-car-wrap" style="display:none"><div class="stat-value" id="stat-car">–</div><div class="stat-label">🚗 Auto</div></div>
+    <div class="stat" id="stat-walk-wrap" style="display:none"><div class="stat-value" id="stat-walk">–</div><div class="stat-label">🚶 Pěšky</div></div>
     <div class="stat"><div class="stat-value" id="stat-dur">–</div><div class="stat-label">Doba</div></div>
     <div class="stat" id="stat-speed-wrap"><div class="stat-value" id="stat-speed">–</div><div class="stat-label">Ø km/h</div></div>
     <div class="stat"><div class="stat-value" id="stat-photos">–</div><div class="stat-label">Fotek</div></div>
@@ -192,6 +194,21 @@
     }
     function formatDate(iso) { return new Date(iso).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
 
+    function haversineKm(lat1,lng1,lat2,lng2) {
+      const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+      const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+      return R*2*Math.asin(Math.sqrt(a));
+    }
+
+    function computeModeDist(track) {
+      let car=0, walk=0;
+      for (let i=1;i<track.length;i++) {
+        const d=haversineKm(track[i-1].lat,track[i-1].lng,track[i].lat,track[i].lng);
+        (track[i].mode==='car' ? (car+=d) : (walk+=d));
+      }
+      return {car, walk, total:car+walk};
+    }
+
     function pinIcon(color, html) {
       return L.divIcon({
         className:'',
@@ -229,7 +246,21 @@
     }
 
     function renderStats(trip) {
-      document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km||0);
+      const track = trip.track||[];
+      const hasCar = track.some(p=>p.mode==='car'), hasWalk = track.some(p=>!p.mode||p.mode==='walk');
+      const mixed = hasCar && hasWalk;
+
+      if (mixed) {
+        const d = computeModeDist(track);
+        document.getElementById('stat-dist').textContent = formatDistance(d.total);
+        document.getElementById('stat-car').textContent = formatDistance(d.car);
+        document.getElementById('stat-walk').textContent = formatDistance(d.walk);
+      } else {
+        document.getElementById('stat-dist').textContent = formatDistance(trip.distance_km||0);
+      }
+      document.getElementById('stat-car-wrap').style.display = mixed ? '' : 'none';
+      document.getElementById('stat-walk-wrap').style.display = mixed ? '' : 'none';
+
       document.getElementById('stat-dur').textContent = formatDuration(trip.duration_seconds||0);
       document.getElementById('stat-photos').textContent = (trip.photos||[]).length;
       document.getElementById('stat-date').textContent = formatDate(trip.started_at);
