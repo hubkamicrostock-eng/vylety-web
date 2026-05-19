@@ -87,6 +87,7 @@
     #lightbox-caption { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
     body.embed #header, body.embed #stats-bar, body.embed #photo-strip { display: none !important; }
     body.embed { height: 100vh; }
+    body.share #header { display: none !important; }
     .loading { padding: 40px; text-align: center; color: #888; font-size: 0.9rem; }
   </style>
 </head>
@@ -557,6 +558,7 @@
       const isEmbed=getParam('embed')==='1';
       const isShare=getParam('share')==='1';
       if (isEmbed) document.body.classList.add('embed');
+      if (isShare) document.body.classList.add('share');
       if (!id) { document.getElementById('trip-title').textContent='Neplatný odkaz'; return; }
 
       currentMap=L.map('map');
