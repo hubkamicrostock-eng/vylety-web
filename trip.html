@@ -555,6 +555,7 @@
     async function init() {
       const id=getParam('id');
       const isEmbed=getParam('embed')==='1';
+      const isShare=getParam('share')==='1';
       if (isEmbed) document.body.classList.add('embed');
       if (!id) { document.getElementById('trip-title').textContent='Neplatný odkaz'; return; }
 
@@ -574,7 +575,7 @@
       renderStats(currentTrip);
       renderRoute(currentTrip);
 
-      if (!isEmbed) {
+      if (!isEmbed && !isShare) {
         document.getElementById('btn-edit').style.display='';
         document.getElementById('btn-edit').addEventListener('click',enterEditMode);
         document.getElementById('edit-save-btn').addEventListener('click',saveEdits);
@@ -596,7 +597,7 @@
           }
         });
 
-        const link=WEB_BASE+'/trip.html?id='+id;
+        const link=WEB_BASE+'/trip.html?id='+id+'&share=1';
         const embed='<iframe src="'+WEB_BASE+'/trip.html?id='+id+'&embed=1" width="800" height="500" style="border:none;border-radius:12px;" allowfullscreen></iframe>';
         document.getElementById('share-link-input').value=link;
         document.getElementById('share-embed-input').value=embed;
