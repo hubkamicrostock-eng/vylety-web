@@ -261,9 +261,7 @@
       document.getElementById('stat-car-wrap').style.display = mixed ? '' : 'none';
       document.getElementById('stat-walk-wrap').style.display = mixed ? '' : 'none';
 
-      document.getElementById('stat-dur').textContent = formatDuration(trip.duration_seconds||0);
       document.getElementById('stat-photos').textContent = (trip.photos||[]).length;
-      document.getElementById('stat-date').textContent = formatDate(trip.started_at);
       const speed = trip.avg_speed_kmh||0;
       document.getElementById('stat-speed').textContent = speed > 0 ? speed.toFixed(1) : '–';
       document.getElementById('stat-speed-wrap').style.display = speed > 0 ? '' : 'none';
