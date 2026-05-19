@@ -572,6 +572,7 @@
       document.getElementById('trip-title').textContent=currentTrip.name||'Výlet';
       renderStats(currentTrip);
       renderRoute(currentTrip);
+      setTimeout(() => currentMap.invalidateSize(), 100);
 
       if (!isEmbed && !isShare) {
         document.getElementById('btn-edit').style.display='';
